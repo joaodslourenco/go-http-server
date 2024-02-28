@@ -16,7 +16,7 @@ type Player struct {
 type PlayerStore interface {
 	GetPlayerScore(name string) int
 	RecordWin(name string)
-	GetLeague() []Player
+	GetLeague() League
 }
 
 type PlayerServer struct {
@@ -26,6 +26,21 @@ type PlayerServer struct {
 }
 
 const jsonContentType = "application/json"
+
+func NewPlayerServer(store PlayerStore) *PlayerServer {
+	p := new(PlayerServer)
+
+	p.store = store
+
+	router := http.NewServeMux()
+
+	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
+	router.Handle("/players/", http.HandlerFunc(p.playersHandler))
+
+	p.Handler = router
+
+	return p
+}
 
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", jsonContentType)
@@ -59,19 +74,4 @@ func (p *PlayerServer) processWin(w http.ResponseWriter, player string) {
 
 	p.store.RecordWin(player)
 	w.WriteHeader(http.StatusAccepted)
-}
-
-func NewPlayerServer(store PlayerStore) *PlayerServer {
-	p := new(PlayerServer)
-
-	p.store = store
-
-	router := http.NewServeMux()
-
-	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
-	router.Handle("/players/", http.HandlerFunc(p.playersHandler))
-
-	p.Handler = router
-
-	return p
 }
